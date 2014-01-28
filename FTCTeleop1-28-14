@@ -1,0 +1,292 @@
+#pragma config(Hubs,  S1, HTMotor,  HTMotor,  HTMotor,  none)
+#pragma config(Hubs,  S2, HTServo,  none,     none,     none)
+#pragma config(Sensor, S3,     armButton,      sensorTouch)
+#pragma config(Sensor, S4,     buttonButton,   sensorTouch)
+#pragma config(Motor,  mtr_S1_C1_1,     R,             tmotorTetrix, openLoop, encoder)
+#pragma config(Motor,  mtr_S1_C1_2,     L,             tmotorTetrix, openLoop, reversed, encoder)
+#pragma config(Motor,  mtr_S1_C2_1,     up,            tmotorTetrix, openLoop, reversed, encoder)
+#pragma config(Motor,  mtr_S1_C2_2,     flagTwirler,   tmotorTetrix, openLoop)
+#pragma config(Motor,  mtr_S1_C3_1,     motorH,        tmotorTetrix, openLoop)
+#pragma config(Motor,  mtr_S1_C3_2,     elbow,         tmotorTetrix, openLoop, reversed)
+#pragma config(Servo,  srvo_S2_C1_1,    Sweeper,              tServoStandard)
+#pragma config(Servo,  srvo_S2_C1_2,    Elbow,                tServoStandard)
+#pragma config(Servo,  srvo_S2_C1_3,    Wrist,                tServoStandard)
+#pragma config(Servo,  srvo_S2_C1_4,    servo4,               tServoNone)
+#pragma config(Servo,  srvo_S2_C1_5,    servo5,               tServoNone)
+#pragma config(Servo,  srvo_S2_C1_6,    servo6,               tServoNone)
+
+#include "JoystickDriver.c"
+
+/************************************************************************
+
+TODO:
+
+*************************************************************************/
+
+int ARM_MAXIMUM = 3591; //TODO Arbitrary (Change to hardcoded maximum value of arm)
+int buttonValueUp = 4;
+int chainCount = 0;
+int max = 0;
+int tickTime;
+/************************************************************************
+
+void deadzone()
+{
+if(joystick.joy1_y1 < 5 && joystick.joy1_y1 > -5) //joystick 1 between 5 and -5
+check1 = true;
+if(joystick.joy1_y1 >= 5 || joystick.joy1_y1 <= -5) //joystick 1 either greater than 5 or less than -5
+check1 = false;
+if(joystick.joy1_y2 < 5 && joystick.joy1_y2 > -5) //joystick 2 between 5 and -5
+check2 = true;
+if(joystick.joy1_y2 >= 5 || joystick.joy1_y2 <= -5) //joystick 2 either greater than 5 or less than -5
+check2 = false;
+}
+
+************************************************************************/
+
+void armReset()
+{
+	if(joystick.joy2_TopHat == 4)
+	{
+		servo[Wrist] = 184;
+		wait1Msec(100);
+		while(SensorValue(buttonButton) != 1)
+			motor[elbow] = -33;
+		while(SensorValue(armButton) != 1)
+			motor[up] = -40;
+	}
+}
+
+/*********************************************************************/
+
+void startsetup()
+{
+	servo[Wrist] = 168;
+	wait1Msec(1000);
+	while(SensorValue(buttonButton) != 1)
+	motor[elbow] = -33;
+	while(SensorValue(armButton) != 1)
+		motor[up] = 33;
+	nMotorEncoder[up] = 0;
+}
+
+/************************************************************************
+
+void encoder()
+{
+while ( max < (ARM_MAXIMUM + 1) )
+{
+if(joystick.joy2_y2 > 0)
+{
+max += nMotorEncoder[up];
+}
+nMotorEncoder[up] = 0;
+if(joystick.joy2_y2 < 0)
+{
+max -= nMotorEncoder[up];
+}
+nMotorEncoder[up] = 0;
+}
+}
+************************************************************************/
+
+void moveFlag()
+{
+	if( joy2Btn(buttonValueUp) == 1)
+		motor[flagTwirler] = -40;
+	else
+		motor[flagTwirler] = 0;
+}
+
+/************************************************************************/
+
+void moveL()
+{
+	if(joystick.joy1_y1 < 5 && joystick.joy1_y1 > -5)
+		motor[L]= 0;
+	else
+		motor[L] = joystick.joy1_y1*0.9;
+}
+
+/************************************************************************/
+
+void moveR()
+{
+	if(joystick.joy1_y2 < 5 && joystick.joy1_y2 > -5)
+		motor[R]= 0;
+	else
+		motor[R]= joystick.joy1_y2*0.9;
+}
+
+/************************************************************************/
+
+void fastL()
+{
+	if(joystick.joy1_y1 < 5 && joystick.joy1_y1 > -5)
+		motor[L]= 0;
+	else
+		motor[L]= joystick.joy1_y1;
+}
+
+/************************************************************************/
+
+void fastR()
+{
+	if(joystick.joy1_y2 < 5 && joystick.joy1_y2 > -5)
+		motor[R]= 0;
+	else
+		motor[R]= joystick.joy1_y2;
+}
+/************************************************************************/
+
+void slowL()
+{
+	if(joystick.joy1_y1 < 5 && joystick.joy1_y1 > -5)
+		motor[L]= 0;
+	else
+		motor[L]= joystick.joy1_y1/4;
+}
+
+/************************************************************************/
+
+void slowR()
+{
+	if(joystick.joy1_y2 < 5 && joystick.joy1_y2 > -5)
+		motor[R]= 0;
+	else
+		motor[R]= joystick.joy1_y2/4;
+}
+
+/*********************************************************************/
+
+void armMotion()
+{
+	if (joystick.joy2_y2 < 5 && joystick.joy2_y2 > -5)
+		motor[up]=0;
+	else if (SensorValue(armButton) != 1)
+	{
+		motor[up] = joystick.joy2_y2 / 2;
+	}
+	else if (SensorValue(armButton) == 1 && joystick.joy2_y2 > 0)
+	{
+		motor[up] = joystick.joy2_y2 / 2;
+	}
+}
+
+/*********************************************************************/
+
+void wristUp()
+{
+	if (joy2Btn(6) == 1 && tickTime % 5 == 0)
+		servo[Wrist] += 1;
+}
+
+/*********************************************************************/
+
+void wristDown()
+{
+	if (joy2Btn(8) == 1 && servo[Wrist] > 0 && tickTime % 5 == 0)
+		servo[Wrist] -= 1;
+
+}
+
+/*********************************************************************/
+
+void elbowgoes() //
+{
+	if ((joystick.joy2_y1 < 5 && joystick.joy2_y1 > -5) || ((SensorValue(buttonButton) == 1) && (joystick.joy2_y1 < 0)))
+		motor[elbow]=0;
+	else if(joystick.joy2_y1 > 5)
+		motor[elbow] = joystick.joy2_y1/2;
+	else
+		motor[elbow] = joystick.joy2_y1/3;
+}
+
+/*********************************************************************/
+
+void sweepermotion()
+{
+	if (joy2Btn(2) == 1)
+		servo[Sweeper] += 1;
+	if (joy2Btn(3) == 1)
+		servo[Sweeper] -= 1;
+}
+
+/*********************************************************************/
+
+void flagw()
+{
+	if (joy2Btn(1) == 1 && servo[Elbow] == 200)
+		servo[Elbow]=255;
+	else if (servo[Elbow] == 255)
+		servo[Elbow] = 200;
+}
+
+/*********************************************************************
+encoder (aka best) version of the chain counting
+*
+
+void armMotionCounted()
+{
+if (joystick.joy2_y2 < 5 && joystick.joy2_y2 > -5)
+motor[up] = 0;
+else if (SensorValue(armButton) != 1 && max < ARM_MAXIMUM)
+motor[up] = joystick.joy2_y2 / 2;
+else if (SensorValue(armButton) == 1)
+motor[up] = -abs(joystick.joy2_y2 / 2);
+}
+
+
+*********************************************************************
+
+use chainCount for keeping track of the number of links that have gone by
+yesNo to test whether the function returned correct or not
+
+
+bool chainCounter()
+{
+yesNo = false;
+if(SensorValue(lightsensor) < LED_VALUE)
+{
+chainCount += 1;
+yesNo = true;
+}
+return yesNo;
+}
+
+/*********************************************************************/
+
+task main()
+{
+	waitForStart();
+	while(true)
+	{
+		tickTime++;
+		getJoystickSettings(joystick);
+
+		if(joy1Btn(7) == 1) //JoyButton 7 pushed
+		{
+			fastL ();
+			fastR ();
+		}
+		else if (joy1Btn(8) == 1) //JoyButton 8 is pushed
+		{
+			slowL ();
+			slowR ();
+		}
+		else
+		{
+			moveR ();
+			moveL ();
+		}
+
+		armMotion();
+		moveFlag();
+		sweepermotion();
+		wristUp();
+		wristDown();
+		elbowgoes();
+		flagw();
+		armReset();
+	}
+}
